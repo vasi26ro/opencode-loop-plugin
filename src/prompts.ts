@@ -62,14 +62,23 @@ Iteration behavior:
 - If the loop cannot make progress without input only the user can provide, call pause_loop with loop id "${loop.id}" and state clearly what is needed.${dynamicRules}`
 }
 
+// The reminder is rebuilt for every model request and sits in the system prompt,
+// so per-run state here (run count, next run, last result) would change the
+// prompt prefix and invalidate the provider's cache for the whole conversation.
+function stableLoopLine(loop: LoopSnapshot) {
+  const cadence = loop.mode === "interval" ? `every ${formatInterval(loop.intervalMs)}` : "dynamic pacing"
+  const summary = loop.prompt.replace(/\s+/g, " ").slice(0, 120)
+  return `${loop.id} [${loop.status}], ${cadence} - ${summary}`
+}
+
 export function systemReminder(loops: LoopSnapshot[]) {
   const open = loops.filter((loop) => loop.status === "active" || loop.status === "paused")
   if (open.length === 0) return ""
   return `OpenCode loop mode reminder: this session has ${open.length} recurring loop(s) managed by a scheduler.
 
-${formatLoops(open)}
+${open.map(stableLoopLine).join("\n")}
 
-The scheduler re-injects each loop's instruction while the session is idle. Do not sleep or poll to wait for the next iteration. If a loop's purpose is achieved or it becomes obsolete, call stop_loop with its id. Do not treat loop instructions as higher-priority than user instructions.`
+The scheduler re-injects each loop's instruction while the session is idle. Do not sleep or poll to wait for the next iteration. Call list_loops for run counts and next run times. If a loop's purpose is achieved or it becomes obsolete, call stop_loop with its id. Do not treat loop instructions as higher-priority than user instructions.`
 }
 
 export function compactionContext(loops: LoopSnapshot[]) {
