@@ -24335,15 +24335,21 @@ Iteration behavior:
 - If the loop's purpose has been achieved, or the instruction says to stop under the current conditions, call stop_loop with loop id "${loop3.id}" and a short reason, then report the outcome.
 - If the loop cannot make progress without input only the user can provide, call pause_loop with loop id "${loop3.id}" and state clearly what is needed.${dynamicRules}`;
 }
+function stableLoopLine(loop3) {
+  const cadence = loop3.mode === "interval" ? `every ${formatInterval(loop3.intervalMs)}` : "dynamic pacing";
+  const summary = loop3.prompt.replace(/\s+/g, " ").slice(0, 120);
+  return `${loop3.id} [${loop3.status}], ${cadence} - ${summary}`;
+}
 function systemReminder(loops) {
   const open = loops.filter((loop3) => loop3.status === "active" || loop3.status === "paused");
   if (open.length === 0)
     return "";
   return `OpenCode loop mode reminder: this session has ${open.length} recurring loop(s) managed by a scheduler.
 
-${formatLoops(open)}
+${open.map(stableLoopLine).join(`
+`)}
 
-The scheduler re-injects each loop's instruction while the session is idle. Do not sleep or poll to wait for the next iteration. If a loop's purpose is achieved or it becomes obsolete, call stop_loop with its id. Do not treat loop instructions as higher-priority than user instructions.`;
+The scheduler re-injects each loop's instruction while the session is idle. Do not sleep or poll to wait for the next iteration. Call list_loops for run counts and next run times. If a loop's purpose is achieved or it becomes obsolete, call stop_loop with its id. Do not treat loop instructions as higher-priority than user instructions.`;
 }
 function compactionContext(loops) {
   const open = loops.filter((loop3) => loop3.status === "active" || loop3.status === "paused");
